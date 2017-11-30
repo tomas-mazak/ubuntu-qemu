@@ -10,10 +10,10 @@ $(IMG_FILE): Makefile
 	sudo parted $(NBD_DEV) -- mklabel msdos mkpart primary 1m -1s toggle 1 boot
 	sudo mkfs.ext4 -L root $(NBD_DEV)p1
 	sudo mount $(NBD_DEV)p1 /mnt
-	sudo debootstrap --variant=minbase --include=linux-image-generic,grub,python,openssh-server,iproute2,less,vim xenial /mnt
+	sudo debootstrap --variant=minbase --include=linux-image-generic,grub,python,openssh-server,iproute2,ifupdown,dbus,less,vim xenial /mnt
 	sudo mount --bind /proc /mnt/proc
 	sudo mount --bind /dev /mnt/dev
-	sudo  mount --bind /sys /mnt/sys
+	sudo mount --bind /sys /mnt/sys
 	sudo mkdir -p /mnt/boot/grub
 	sudo cp default.grub /mnt/etc/default/grub
 	sudo /bin/sh -c 'echo "LABEL=root	/	ext4	defaults		0 0" > /mnt/etc/fstab'
@@ -23,6 +23,9 @@ $(IMG_FILE): Makefile
 	sudo sed -i 's/^PermitRootLogin .*/PermitRootLogin yes/' /mnt/etc/ssh/sshd_config
 	sudo sed -i -r "s;root:[^:]*:;root:`echo '$(IMG_ROOTPW)' | mkpasswd -m SHA-256 -s`:;" /mnt/etc/shadow
 	sudo /bin/sh -c 'echo ubuntu > /mnt/etc/hostname'
+	sudo /bin/sh -c 'echo "deb http://archive.ubuntu.com/ubuntu xenial universe" >> /mnt/etc/apt/sources.list'
+	sudo chroot /mnt apt-get clean
+	sudo rm -Rf /mnt/var/lib/apt/lists
 	sudo umount /mnt/dev /mnt/proc /mnt/sys /mnt
 	sudo qemu-nbd --disconnect $(NBD_DEV)
 	echo "Image '$(IMG_FILE)' built SUCCESSFULLY!"
